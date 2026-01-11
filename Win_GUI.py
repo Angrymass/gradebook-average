@@ -2,8 +2,10 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLa
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt
 import requests
-import sys
+import sys, os
 import Web_Agent
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 
 app_icon = "assets/icon.ico"
 
@@ -11,7 +13,6 @@ current_key = ""
 current_user = ""
 
 def resource_path(relative_path):
-    import sys, os
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
@@ -21,6 +22,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__() 
 
+        self.medie = []
         self.list_voti = []
         self.crono_materie = {}
         self.default_crono = "Nessun Voto"
@@ -54,20 +56,28 @@ class MainWindow(QMainWindow):
         self.cancella_voto.setMinimumHeight(40)
         self.cancella_voto.clicked.connect(self.on_cancella_voto)
 
-        scrollvoti = QScrollArea()
-        scrollvoti.setWidgetResizable(True)
-        scrollvoti.setWidget(self.label_crono_voti)
+        self.scrollvoti = QScrollArea()
+        self.scrollvoti.setWidgetResizable(True)
+        self.scrollvoti.setWidget(self.label_crono_voti)
 
-        scrollmaterie = QScrollArea()
-        scrollmaterie.setWidgetResizable(True)
-        scrollmaterie.setWidget(self.label_media_materie)
+        self.scrollmaterie = QScrollArea()
+        self.scrollmaterie.setWidgetResizable(True)
+        self.scrollmaterie.setWidget(self.label_media_materie)
+
+        self.fig = Figure()
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasQTAgg(self.fig)   
+        self.toolbar = NavigationToolbar2QT(self.canvas, self)
 
         layout = QGridLayout()
-        layout.addWidget(scrollvoti, 0, 0)
-        layout.addWidget(self.label_media_tot, 0, 1)
-        layout.addWidget(self.button_aggvoto, 1, 0)
-        layout.addWidget(scrollmaterie, 1, 1)
-        layout.addWidget(self.cancella_voto, 2, 0, 1, 2)
+
+        layout.addWidget(self.scrollvoti, 0, 0, 3, 1)
+        layout.addWidget(self.button_aggvoto, 3, 0, 1, 1)
+        layout.addWidget(self.cancella_voto, 4, 0, 1, 1)
+        layout.addWidget(self.label_media_tot, 0, 1, 2, 1)
+        layout.addWidget(self.scrollmaterie, 2, 1, 3, 1)
+        layout.addWidget(self.toolbar, 0, 2, 1, 1)
+        layout.addWidget(self.canvas, 1, 2, 4, 1)
 
         widget = QWidget()
         widget.setLayout(layout)
@@ -110,6 +120,27 @@ class MainWindow(QMainWindow):
         self.make_label_crono_voti()
         self.make_label_media_tot()
         self.make_label_media_materie()
+        self.make_medie()
+        self.make_grafico()
+
+    def make_medie(self):
+        self.medie = []
+        tot = 0
+        peso = 0
+        for voto, materia, p in self.list_voti:
+            tot += voto * (p / 100)
+            peso += (p / 100)
+            self.medie.append(tot / peso if peso != 0 else 0)
+
+    def make_grafico(self):
+        self.ax.clear()
+        self.ax.plot(self.medie, marker='o')
+        self.ax.set_ylim(0, 10)
+        self.ax.set_title("Andamento Media")
+        self.ax.set_xlabel("Numero Voti")
+        self.ax.set_ylabel("Media")
+        self.ax.grid(True)
+        self.canvas.draw()
 
     def make_label_crono_voti(self):
         if len(self.list_voti) != 0:
