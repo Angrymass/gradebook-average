@@ -4,11 +4,14 @@ from bs4 import BeautifulSoup
 import logging
 import sys
 import os
+import json
 
 def resource_path(relative_path):
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
 
 logging.basicConfig(
     filename="error_log.txt",
@@ -51,7 +54,8 @@ def login(username: str, password: str):
     }
     import json
     try:
-        with open(resource_path("config.json"), 'r') as f:
+        config_path = resource_path("config.json")
+        with open(config_path, "r") as f:
             config = json.load(f)
     except FileNotFoundError:
         logging.error("Configuration file not found: config.json")
@@ -106,8 +110,8 @@ def voti(current_key: str, current_user: str):
     "current_key": current_key,
     "header": "SI",
     }
-    with open(resource_path("config.json"), 'r') as f:
-        import json
+    config_path = resource_path("config.json")
+    with open(config_path, "r") as f:
         config = json.load(f)
     try:
         response_voti = session.post(config["api"], data=data, timeout=timeout)

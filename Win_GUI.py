@@ -13,8 +13,10 @@ current_user = ""
 def resource_path(relative_path):
     import sys, os
     if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class MainWindow(QMainWindow):
 
@@ -199,6 +201,9 @@ class DialogLogin(QDialog):
             return
         except requests.exceptions.RequestException:
             QMessageBox.critical(self, "Errore", "Errore di connessione. Controlla la connessione e riprova.")
+            return
+        except FileNotFoundError:
+            QMessageBox.critical(self, "Errore", "File di configurazione non trovato. Consultare la documentazione.")
             return
         except Exception:
             QMessageBox.critical(self, "Errore", "Errore sconosciuto durante il login.")
