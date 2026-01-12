@@ -114,7 +114,8 @@ class MainWindow(QMainWindow):
             return
         self.list_voti = []
         for voto in voti:
-            voto = [float(voto["voto"]), sist_stringa(voto["materia"]), int(voto["peso"])]
+            voto["materia"] = sist_stringa(voto["materia"][0].upper() + voto["materia"][1:].lower())
+            voto = [float(voto["voto"]), voto["materia"], int(voto["peso"])]
             self.list_voti.append([voto[0], voto[1], voto[2]])
         self.aggiorna()
     
@@ -321,7 +322,8 @@ class DialogAggiungiVoto(QDialog):
         if materia == "":
             QMessageBox.warning(self, "Errore", "Inserisci una materia valida.")
             return
-        voto_fin = [voto, sist_stringa(materia), peso]
+        materia = sist_stringa(materia[0].upper() + materia[1:].lower())
+        voto_fin = [voto, materia, peso]
         self.parent().list_voti.append(voto_fin)
         self.parent().aggiorna()
         self.accept()
