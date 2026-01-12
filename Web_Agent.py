@@ -1,17 +1,8 @@
-import requests
-import time
-from bs4 import BeautifulSoup
 import logging
-import sys
-import os
-import json
+import time
 
-def resource_path(relative_path):
-    if getattr(sys, 'frozen', False):
-        base_path = os.path.dirname(sys.executable)
-    else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_path, relative_path)
+from bs4 import BeautifulSoup
+import requests
 
 logging.basicConfig(
     filename="error_log.txt",
@@ -20,6 +11,7 @@ logging.basicConfig(
 )
 
 timeout = 10
+api = "https://capirola-bs.registroelettronico.com/mastercom/index.php"
 session = requests.Session()
 
 class LoginError(Exception):
@@ -30,7 +22,6 @@ class UnknownError(Exception):
     pass
 
 def login(username: str, password: str):
-
     """
     Function to log in to the web agent.
     Returns current_key and current_user upon successful login.
@@ -46,41 +37,35 @@ def login(username: str, password: str):
     :return: current_key and current_user
     :rtype: tuple[str, str]
     """
+
     data = {
     "user": username,
     "password_user": password,
     "login_ts": int(time.time()),
     "form_login": "true"
     }
-    import json
+    
     try:
-        config_path = resource_path("config.json")
-        with open(config_path, "r") as f:
-            config = json.load(f)
-    except FileNotFoundError:
-        logging.error("Configuration file not found: config.json")
-        raise FileNotFoundError("Configuration file not found")
-    except json.JSONDecodeError:
-        logging.error("Error decoding JSON from config.json")
-        raise ValueError("Error decoding JSON from configuration file")
-    try:
-        response_login = session.post(config["api"], data=data, timeout=timeout)
+        response_login = session.post(api, data=data, timeout=timeout)
     except requests.exceptions.RequestException as e:
         logging.error(f"Login request failed: {e}")
         raise RequestError("Request exception during login")
     except Exception as e:
         logging.error(f"Unexpected error during login: {e}")
         raise UnknownError("Unknown error during login")
+    
     soup = BeautifulSoup(response_login.text, 'html.parser')
     title = soup.find("title")
     title = title.text.strip() if title else ""
     if "Login" in title:
         logging.error("Login failed: Invalid credentials")
         raise LoginError("Invalid credentials")
+    
     current_key_input = soup.find('input', {'name': 'current_key'})
-    current_key = current_key_input['value'] if current_key_input else None 
+    current_key = current_key_input.get('value') if current_key_input else None 
     current_user_input = soup.find('input', {'name': 'current_user'})
-    current_user = current_user_input['value'] if current_user_input else None
+    current_user = current_user_input.get('value') if current_user_input else None
+
     if not current_key or not current_user:
         logging.error("Login failed: Missing session parameters")
         raise UnknownError("Missing session parameters after login")
@@ -88,21 +73,26 @@ def login(username: str, password: str):
 
 def voti(current_key: str, current_user: str):
     """
-    Function to retrieve grades from the web agent.
-    Returns a list of dictionaries containing grades information.
-    The list is ordered from oldest to newest grade.
-    If session is invalid, raises LoginError.
-    If a request exception occurs, raises RequestError.
-    If no grades are found, returns an empty list.
-    If an unknown error occurs, raises UnknownError.
-
-    :param current_key: Current session key(from login)
-    :type current_key: str
-    :param current_user: Current user identifier(from login)
-    :type current_user: str
-    :return: List of grades information
-    :rtype: list[dict]
+    Retrieve grades from the web agent for a specific user session.
+    Fetches grade information by making a POST request with the provided session
+    credentials. Parses the HTML response to extract individual grades, their
+    associated subjects, and weight values. Returns grades sorted from oldest to newest.
+    Args:
+        current_key (str): The current session key obtained from login authentication.
+        current_user (str): The current user identifier obtained from login authentication.
+    Returns:
+        list[dict]: A list of dictionaries containing grade information, ordered from
+                   oldest to newest. Each dictionary contains:
+                   - 'voto' (float): The numeric grade value
+                   - 'materia' (str): The subject/course name
+                   - 'peso' (int): The weight of the grade (default 100 if not specified)
+                   Returns an empty list if no grades are found.
+    Raises:
+        LoginError: If the session is invalid or expired (indicated by "Login" in page title).
+        RequestError: If a network request exception occurs during the API call.
+        UnknownError: If an unexpected error occurs during grade retrieval.
     """
+
     data = {
     "form_stato": "studente",
     "stato_principale": "voti",
@@ -110,23 +100,24 @@ def voti(current_key: str, current_user: str):
     "current_key": current_key,
     "header": "SI",
     }
-    config_path = resource_path("config.json")
-    with open(config_path, "r") as f:
-        config = json.load(f)
+
     try:
-        response_voti = session.post(config["api"], data=data, timeout=timeout)
+        response_voti = session.post(api, data=data, timeout=timeout)
     except requests.exceptions.RequestException as e:
         logging.error(f"Voti request failed: {e}")
         raise RequestError("Request exception during voti retrieval")
     except Exception as e:
         logging.error(f"Unexpected error during voti retrieval: {e}")
         raise UnknownError("Unknown error during voti retrieval")
+    
     soup = BeautifulSoup(response_voti.text, 'html.parser')
     title = soup.find("title")
     title = title.text.strip() if title else ""
+
     if "Login" in title:
         logging.error("Session invalid: Wrong/expired session")
         raise LoginError("Wrong/expired session")
+    
     righe_voti = soup.find_all('tr', attrs={'data-tipo': 'voto'})
     risultati = []
     for riga in righe_voti:
@@ -150,7 +141,7 @@ def voti(current_key: str, current_user: str):
         peso_div = td_voto.find("div", class_="margin-top-small small border round padding-xsmall")
         if peso_div:
             testo = peso_div.get_text()
-            peso = int("".join(c for c in testo if c.isdigit()) or "100")
+            peso = int("".join(c for c in testo if c.isdigit())) if any(c.isdigit() for c in testo) else 100
         else:
             peso = 100
         risultati.append({
@@ -158,4 +149,4 @@ def voti(current_key: str, current_user: str):
         "materia": materia,
         "peso": peso
         })
-    return risultati[::-1]
+    return list(reversed(risultati))

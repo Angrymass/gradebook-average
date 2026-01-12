@@ -1,22 +1,26 @@
+import sys
+import os
+import re
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QScrollArea, QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QMessageBox
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt
 import requests
-import sys
+
 import Web_Agent
 
-app_icon = "assets/icon.ico"
+ICONA_APP = "assets/icon.ico"
 
 current_key = ""
 current_user = ""
 
 def resource_path(relative_path):
-    import sys, os
     if hasattr(sys, "_MEIPASS"):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+def sist_stringa(stringa):
+    return re.sub(r'[^\w\s]', ' ', stringa, flags=re.UNICODE)
 
 class MainWindow(QMainWindow):
 
@@ -30,11 +34,11 @@ class MainWindow(QMainWindow):
         self.default_media_materie = "Nessuna Materia"
 
         self.setWindowTitle("Calcolatore Media Ponderata Materie")
-        self.setWindowIcon(QIcon(resource_path(app_icon)))
+        self.setWindowIcon(QIcon(resource_path(ICONA_APP)))
         self.setMinimumSize(300, 300)
+
         self.label_crono_voti = QLabel(self.default_crono)
         self.label_crono_voti.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-
         self.label_crono_voti.setWordWrap(True)
 
         self.label_media_tot = QLabel(self.default_media_tot)
@@ -99,7 +103,8 @@ class MainWindow(QMainWindow):
             return
         self.list_voti = []
         for voto in voti:
-            self.list_voti.append([voto["voto"], voto["materia"], voto["peso"]])
+            voto = [float(voto["voto"]), sist_stringa(voto["materia"]), int(voto["peso"])]
+            self.list_voti.append([voto[0], voto[1], voto[2]])
         self.aggiorna()
     
     def on_cancella_voto(self):
@@ -113,15 +118,23 @@ class MainWindow(QMainWindow):
         self.make_label_media_tot()
         self.make_label_media_materie()
 
+    def make_crono_materie(self):
+        self.crono_materie = {}
+        for voto in self.list_voti:
+            materia = voto[1]
+            if materia not in self.crono_materie:
+                self.crono_materie[materia] = []
+            self.crono_materie[materia].append([voto[0], voto[2]])
+
     def make_label_crono_voti(self):
         if len(self.list_voti) != 0:
             text = ""
             for i in range(len(self.list_voti), 0, -1):
-                v = self.list_voti[i-1]
-                if v[2] == 100:
-                    text += "%s - %s\n" % (v[0], v[1])
+                voto = self.list_voti[i-1]
+                if voto[2] == 100:
+                    text += "%s - %s\n" % (voto[0], voto[1])
                 else:
-                    text += "%s (peso %s) - %s\n" % (v[0], str(v[2]) + "%", v[1])
+                    text += "%s (peso %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[1])
         else:
             text = self.default_crono
         self.label_crono_voti.setText(text)
@@ -139,14 +152,6 @@ class MainWindow(QMainWindow):
         else:
             text = self.default_media_tot
         self.label_media_tot.setText(text)
-
-    def make_crono_materie(self):
-        self.crono_materie = {}
-        for voto in self.list_voti:
-            materia = voto[1]
-            if materia not in self.crono_materie:
-                self.crono_materie[materia] = []
-            self.crono_materie[materia].append([voto[0], voto[2]])
 
     def make_label_media_materie(self):	
         if len(self.crono_materie) != 0:
@@ -168,17 +173,22 @@ class DialogLogin(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Login...")
+        self.setWindowIcon(QIcon(resource_path(ICONA_APP)))
+
         self.login_label = QLabel("Inserisci username e password:")
         self.login_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.setWindowIcon(QIcon(resource_path(app_icon)))
+
         self.username_line = QLineEdit()
+        self.username_line.setPlaceholderText("Username")
+
         self.password_line = QLineEdit()
         self.password_line.setEchoMode(QLineEdit.EchoMode.Password)
-        self.username_line.setPlaceholderText("Username")
         self.password_line.setPlaceholderText("Password")
+        
         buttonbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttonbox.accepted.connect(self.endloginok)
         buttonbox.rejected.connect(self.reject)
+
         layout = QVBoxLayout()
         layout.addWidget(self.login_label)
         layout.addWidget(self.username_line)
@@ -208,30 +218,38 @@ class DialogLogin(QDialog):
         except Exception:
             QMessageBox.critical(self, "Errore", "Errore sconosciuto durante il login.")
             return
-        window.fetchvoti()
+        self.parent().fetchvoti()
         self.accept()
 
 class DialogAggiungiVoto(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Aggiungi Voto")
-        self.setWindowIcon(QIcon(resource_path(app_icon)))
+        self.setWindowIcon(QIcon(resource_path(ICONA_APP)))
+
         self.votolabel = QLabel("Inserisci il voto:")
         self.votolabel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
         self.matlabel = QLabel("Inserisci la materia:")
         self.matlabel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
         self.pesolabel = QLabel("Inserisci il peso:")
         self.pesolabel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
         self.votoinput = QLineEdit()
         self.votoinput.setPlaceholderText("Voto (0.0-10.0)")
+
         self.matinput = QLineEdit()
         self.matinput.setPlaceholderText("Materia")
+
         self.pesoinput = QLineEdit()
         self.pesoinput.setPlaceholderText("Peso (1-100)")
         self.pesoinput.setText("100")
+
         buttonbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttonbox.accepted.connect(self.okvoto)
         buttonbox.rejected.connect(self.reject)
+
         layout = QGridLayout()
         layout.addWidget(self.votolabel, 0, 0)
         layout.addWidget(self.votoinput, 0, 1)
@@ -263,14 +281,14 @@ class DialogAggiungiVoto(QDialog):
         if materia == "":
             QMessageBox.warning(self, "Errore", "Inserisci una materia valida.")
             return
-        parent = self.parent()
-        parent.list_voti.append([voto, materia, peso])
-        parent.aggiorna()
-        super().accept()
+        voto_fin = [voto, sist_stringa(materia), peso]
+        self.parent().list_voti.append(voto_fin)
+        self.parent().aggiorna()
+        self.accept()
 
-app = QApplication([sys.argv[0]])
+app = QApplication(sys.argv)
 window = MainWindow()
-dialog = DialogLogin()
+dialog = DialogLogin(window)
 dialog.exec()
 window.show()  
 app.exec()
