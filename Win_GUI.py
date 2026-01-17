@@ -331,6 +331,6 @@ class DialogAggiungiVoto(QDialog):
 app = QApplication(sys.argv)
 window = MainWindow()
 dialog = DialogLogin(window)
-dialog.exec()
-window.show()  
+if dialog.exec() == QDialog.DialogCode.Accepted:
+    window.show() 
 app.exec()
