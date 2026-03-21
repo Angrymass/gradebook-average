@@ -3,4 +3,5 @@ __pycache__/
 config.json
 *.spec
 build/
-dist/.venv
+dist/
+.venv
