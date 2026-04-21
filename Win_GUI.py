@@ -9,7 +9,8 @@ import requests
 
 import Web_Agent
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt import NavigationToolbar2QT
 
 ICONA_APP = "assets/icon.ico"
 
@@ -18,7 +19,7 @@ current_user = ""
 
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(getattr(sys, "_MEIPASS"), relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
 def sist_stringa(stringa):

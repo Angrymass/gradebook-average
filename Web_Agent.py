@@ -86,6 +86,8 @@ def voti(current_key: str, current_user: str):
                    - 'voto' (float): The numeric grade value
                    - 'materia' (str): The subject/course name
                    - 'peso' (int): The weight of the grade (default 100 if not specified)
+                   - 'data' (str or None): The date of the grade, if available
+                   - 'tipo' (str or None): The type of grade, if available
                    Returns an empty list if no grades are found.
     Raises:
         LoginError: If the session is invalid or expired (indicated by "Login" in page title).
@@ -121,9 +123,8 @@ def voti(current_key: str, current_user: str):
     righe_voti = soup.find_all('tr', attrs={'data-tipo': 'voto'})
     risultati = []
     for riga in righe_voti:
-        if not riga.find_all("td"):
-            continue
-        if len(riga.find_all("td")) < 3:
+        celle_td = riga.find_all("td")
+        if len(celle_td) < 3:
             continue
         td_materia = riga.find_all("td")[2]
         td_voto = riga.find_all("td")[0]
@@ -138,15 +139,22 @@ def voti(current_key: str, current_user: str):
         if not materia_strong:
             continue
         materia = materia_strong.text.strip()
-        peso_div = td_voto.find("div", class_="margin-top-small small border round padding-xsmall")
+        peso_div = td_voto.find("div", class_="margin-top-small")
         if peso_div:
             testo = peso_div.get_text()
             peso = int("".join(c for c in testo if c.isdigit())) if any(c.isdigit() for c in testo) else 100
         else:
             peso = 100
+        td_data = riga.find_all("td")[1]
+        data_i = td_data.find("i")
+        data = data_i.text.strip() if data_i else None
+        tipo_div = td_data.find("div", class_="row-padding")
+        tipo = tipo_div.find("i").text.strip() if tipo_div and tipo_div.find("i") else None
         risultati.append({
         "voto": voto,
         "materia": materia,
-        "peso": peso
+        "peso": peso,
+        "data": data,
+        "tipo": tipo
         })
     return list(reversed(risultati))
