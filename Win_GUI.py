@@ -116,8 +116,8 @@ class MainWindow(QMainWindow):
         self.list_voti = []
         for voto in voti:
             voto["materia"] = sist_stringa(voto["materia"][0].upper() + voto["materia"][1:].lower())
-            voto = [float(voto["voto"]), voto["materia"], int(voto["peso"])]
-            self.list_voti.append([voto[0], voto[1], voto[2]])
+            voto = [float(voto["voto"]), voto["materia"], int(voto["peso"]), voto["data"], voto["tipo"]]
+            self.list_voti.append([voto[0], voto[1], voto[2], voto[3], voto[4]])
         self.aggiorna()
     
     def on_cancella_voto(self):
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         self.medie = []
         tot = 0
         peso = 0
-        for voto, materia, p in self.list_voti:
+        for voto, materia, p, data, tipo in self.list_voti:
             tot += voto * (p / 100)
             peso += (p / 100)
             self.medie.append(tot / peso if peso != 0 else 0)
@@ -160,23 +160,15 @@ class MainWindow(QMainWindow):
                 self.crono_materie[materia] = []
             self.crono_materie[materia].append([voto[0], voto[2]])
 
-    def make_crono_materie(self):
-        self.crono_materie = {}
-        for voto in self.list_voti:
-            materia = voto[1]
-            if materia not in self.crono_materie:
-                self.crono_materie[materia] = []
-            self.crono_materie[materia].append([voto[0], voto[2]])
-
     def make_label_crono_voti(self):
         if len(self.list_voti) != 0:
             text = ""
             for i in range(len(self.list_voti), 0, -1):
                 voto = self.list_voti[i-1]
                 if voto[2] == 100:
-                    text += "%s - %s\n" % (voto[0], voto[1])
+                    text += "%s (%s) - %s - %s\n" % (voto[0], voto[4], voto[1], voto[3])
                 else:
-                    text += "%s (peso %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[1])
+                    text += "%s (peso %s, %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[4], voto[1])
         else:
             text = self.default_crono
         self.label_crono_voti.setText(text)
