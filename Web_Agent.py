@@ -142,7 +142,12 @@ def voti(current_key: str, current_user: str):
         peso_div = td_voto.find("div", class_="margin-top-small")
         if peso_div:
             testo = peso_div.get_text()
-            peso = int("".join(c for c in testo if c.isdigit())) if any(c.isdigit() for c in testo) else 100
+            if any(c.isdigit() for c in testo):
+                peso = int("".join(c for c in testo if c.isdigit()))
+            elif "non" in testo.lower():
+                peso = 0
+            else:
+                peso = 100
         else:
             peso = 100
         td_data = riga.find_all("td")[1]
