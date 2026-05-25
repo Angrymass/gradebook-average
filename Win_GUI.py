@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.cancella_voto.setMinimumHeight(40)
         self.cancella_voto.clicked.connect(self.on_cancella_voto)
 
-        self.toggle_periodi = QPushButton("Trimestre/Pentamestre")
+        self.toggle_periodi = QPushButton("Trimestre/Pentamestre (Attuale: Entrambi)")
         self.toggle_periodi.setToolTip("Cambia tra trimestre e pentamestre")
         self.toggle_periodi.setMinimumHeight(40)
         self.toggle_periodi.clicked.connect(self.toggle_periodo)
@@ -141,6 +141,7 @@ class MainWindow(QMainWindow):
         self.periodo += 1
         if self.periodo > 2:
             self.periodo = 0
+        self.toggle_periodi.setText("Trimestre/Pentamestre (Attuale: %s)" % ("Entrambi" if self.periodo == 0 else "Trimestre" if self.periodo == 1 else "Pentamestre"))
         self.aggiorna()
 
     def aggiorna(self):
