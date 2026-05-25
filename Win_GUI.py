@@ -39,8 +39,12 @@ class MainWindow(QMainWindow):
         self.default_crono = "Nessun Voto"
         self.default_media_tot = "Nessun Voto"
         self.default_media_materie = "Nessuna Materia"
-        self.cambio_periodo = datetime(datetime.now().year, 12, 31)
-
+        now = datetime.now()
+        if now.month >= 9:
+            anno_cambio = now.year
+        else:
+            anno_cambio = now.year - 1
+        self.cambio_periodo = datetime(anno_cambio, 12, 31)
         self.setWindowTitle("Calcolatore Media Ponderata Materie")
         self.setWindowIcon(QIcon(resource_path(ICONA_APP)))
         self.setMinimumSize(300, 300)
