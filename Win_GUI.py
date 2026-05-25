@@ -1,7 +1,7 @@
 import sys
 import os
 import re
-
+from datetime import datetime
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QScrollArea, QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QMessageBox
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt
@@ -32,10 +32,14 @@ class MainWindow(QMainWindow):
 
         self.medie = []
         self.list_voti = []
+        self.voti_registro = []
+        self.pers_voti = []
         self.crono_materie = {}
+        self.periodo = 0
         self.default_crono = "Nessun Voto"
         self.default_media_tot = "Nessun Voto"
         self.default_media_materie = "Nessuna Materia"
+        self.cambio_periodo = datetime(datetime.now().year, 12, 31)
 
         self.setWindowTitle("Calcolatore Media Ponderata Materie")
         self.setWindowIcon(QIcon(resource_path(ICONA_APP)))
@@ -64,6 +68,10 @@ class MainWindow(QMainWindow):
         self.cancella_voto.setMinimumHeight(40)
         self.cancella_voto.clicked.connect(self.on_cancella_voto)
 
+        self.toggle_periodi = QPushButton("Trimestre/Pentamestre")
+        self.toggle_periodi.setToolTip("Cambia tra trimestre e pentamestre")
+        self.toggle_periodi.setMinimumHeight(40)
+        self.toggle_periodi.clicked.connect(self.toggle_periodo)
         self.scrollvoti = QScrollArea()
         self.scrollvoti.setWidgetResizable(True)
         self.scrollvoti.setWidget(self.label_crono_voti)
@@ -86,7 +94,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.scrollmaterie, 2, 1, 3, 1)
         layout.addWidget(self.toolbar, 0, 2, 1, 1)
         layout.addWidget(self.canvas, 1, 2, 4, 1)
-
+        layout.addWidget(self.toggle_periodi, 5, 0, 1, 1)
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
@@ -113,19 +121,26 @@ class MainWindow(QMainWindow):
         if not voti:
             QMessageBox.information(self, "Info", "Nessun voto trovato nel registro.")
             return
-        self.list_voti = []
+        self.voti_registro = []
         for voto in voti:
             voto["materia"] = sist_stringa(voto["materia"][0].upper() + voto["materia"][1:].lower())
             voto = [float(voto["voto"]), voto["materia"], int(voto["peso"]), voto["data"], voto["tipo"]]
-            self.list_voti.append([voto[0], voto[1], voto[2], voto[3], voto[4]])
+            self.voti_registro.append([voto[0], voto[1], voto[2], voto[3], voto[4]])
         self.aggiorna()
     
     def on_cancella_voto(self):
-        if len(self.list_voti) > 0:
-            self.list_voti.pop()
+        if len(self.pers_voti) > 0:
+            self.pers_voti.pop()
         self.aggiorna()
     
+    def toggle_periodo(self):
+        self.periodo += 1
+        if self.periodo > 2:
+            self.periodo = 0
+        self.aggiorna()
+
     def aggiorna(self):
+        self.make_list_voti()
         self.make_crono_materie()
         self.make_label_crono_voti()
         self.make_label_media_tot()
@@ -133,14 +148,33 @@ class MainWindow(QMainWindow):
         self.make_medie()
         self.make_grafico()
 
+    def make_list_voti(self):
+        if self.periodo == 0:
+           self.list_voti = self.voti_registro.copy()
+           for voto in self.list_voti:
+            voto[0] = float(voto[0])
+            voto[2] = int(voto[2])
+        elif self.periodo == 1:
+            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo]
+            for voto in self.list_voti:
+                voto[0] = float(voto[0])
+                voto[2] = int(voto[2])
+        else:
+            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo]
+            for voto in self.list_voti:
+                voto[0] = float(voto[0])
+                voto[2] = int(voto[2])
+        self.list_voti.extend(self.pers_voti)
+
     def make_medie(self):
         self.medie = []
         tot = 0
         peso = 0
-        for voto, materia, p, data, tipo in self.list_voti:
-            tot += voto * (p / 100)
-            peso += (p / 100)
-            self.medie.append(tot / peso if peso != 0 else 0)
+        for voto in self.list_voti:
+            tot += voto[0] * (voto[2] / 100)
+            peso += (voto[2] / 100)
+            media = (tot / peso) if peso != 0 else 0
+            self.medie.append(media)
 
     def make_grafico(self):
         self.ax.clear()
@@ -165,10 +199,13 @@ class MainWindow(QMainWindow):
             text = ""
             for i in range(len(self.list_voti), 0, -1):
                 voto = self.list_voti[i-1]
-                if voto[2] == 100:
-                    text += "%s (%s) - %s - %s\n" % (voto[0], voto[4], voto[1], voto[3])
+                if voto in self.voti_registro:
+                    if voto[2] == 100:
+                        text += "%s (%s) - %s - %s\n" % (voto[0], voto[4], voto[1], voto[3])
+                    else:
+                        text += "%s (peso %s, %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[4], voto[1])
                 else:
-                    text += "%s (peso %s, %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[4], voto[1])
+                    text += "%s (peso %s) - %s\n" % (voto[0], str(voto[2]) + "%", voto[1])
         else:
             text = self.default_crono
         self.label_crono_voti.setText(text)
@@ -317,7 +354,7 @@ class DialogAggiungiVoto(QDialog):
             return
         materia = sist_stringa(materia[0].upper() + materia[1:].lower())
         voto_fin = [voto, materia, peso]
-        self.parent().list_voti.append(voto_fin)
+        self.parent().pers_voti.append(voto_fin)
         self.parent().aggiorna()
         self.accept()
 
