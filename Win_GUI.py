@@ -85,7 +85,8 @@ class MainWindow(QMainWindow):
         self.scrollmaterie.setWidget(self.label_media_materie)
 
         self.fig = Figure()
-        self.ax = self.fig.add_subplot(111)
+        self.gmedia = self.fig.add_subplot(211)
+        self.gvoti = self.fig.add_subplot(212)
         self.canvas = FigureCanvasQTAgg(self.fig)   
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
 
@@ -182,13 +183,22 @@ class MainWindow(QMainWindow):
             self.medie.append(media)
 
     def make_grafico(self):
-        self.ax.clear()
-        self.ax.plot(self.medie, marker='o')
-        self.ax.set_ylim(0, 10)
-        self.ax.set_title("Andamento Media")
-        self.ax.set_xlabel("Numero Voti")
-        self.ax.set_ylabel("Media")
-        self.ax.grid(True)
+        self.gmedia.clear()
+        self.gvoti.clear()
+        self.gmedia.plot(self.medie, marker='.')
+        self.gmedia.set_ylim(0, 11)
+        self.gmedia.set_title("Andamento Media")
+        self.gmedia.set_xlabel("Numero Voti")
+        self.gmedia.set_ylabel("Media")
+        self.gmedia.grid(True)
+        voti = [voto[0] for voto in self.list_voti]
+        self.gvoti.plot(voti, marker='.')
+        self.gvoti.set_ylim(0, 11)
+        self.gvoti.set_title("Voti")
+        self.gvoti.set_xlabel("Ordine Voto")
+        self.gvoti.set_ylabel("Valore")
+        self.gvoti.grid(True)
+        self.fig.subplots_adjust(hspace=0.4)
         self.canvas.draw()
 
     def make_crono_materie(self):
