@@ -2,7 +2,7 @@ import sys
 import os
 import re
 from datetime import datetime
-from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QScrollArea, QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QScrollArea, QDialog, QVBoxLayout, QDialogButtonBox, QLineEdit, QMessageBox, QComboBox
 from PyQt6.QtGui import QIcon, QFont
 from PyQt6.QtCore import Qt
 import requests
@@ -76,6 +76,10 @@ class MainWindow(QMainWindow):
         self.toggle_periodi.setToolTip("Cambia tra trimestre e pentamestre")
         self.toggle_periodi.setMinimumHeight(40)
         self.toggle_periodi.clicked.connect(self.toggle_periodo)
+
+        self.menu_materie = QComboBox()
+        self.menu_materie.addItem("Tutte le materie")
+
         self.scrollvoti = QScrollArea()
         self.scrollvoti.setWidgetResizable(True)
         self.scrollvoti.setWidget(self.label_crono_voti)
@@ -91,7 +95,6 @@ class MainWindow(QMainWindow):
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
 
         layout = QGridLayout()
-
         layout.addWidget(self.scrollvoti, 0, 0, 3, 1)
         layout.addWidget(self.button_aggvoto, 3, 0, 1, 1)
         layout.addWidget(self.cancella_voto, 4, 0, 1, 1)
@@ -100,6 +103,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.toolbar, 0, 2, 1, 1)
         layout.addWidget(self.canvas, 1, 2, 4, 1)
         layout.addWidget(self.toggle_periodi, 5, 0, 1, 1)
+        layout.addWidget(self.menu_materie, 5, 1, 1, 1)
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
@@ -377,5 +381,7 @@ app = QApplication(sys.argv)
 window = MainWindow()
 dialog = DialogLogin(window)
 if dialog.exec() == QDialog.DialogCode.Accepted:
-    window.show() 
+    window.show()
+else:
+    window.show()
 app.exec()
