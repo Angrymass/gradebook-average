@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         self.pers_voti = []
         self.crono_materie = {}
         self.periodo = 0
+        self.materia = "Tutte le materie"
         self.default_crono = "Nessun Voto"
         self.default_media_tot = "Nessun Voto"
         self.default_media_materie = "Nessuna Materia"
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow):
         self.toggle_periodi.clicked.connect(self.toggle_periodo)
 
         self.menu_materie = QComboBox()
-        self.menu_materie.addItem("Tutte le materie")
+        self.menu_materie.currentTextChanged.connect(self.single_materia)
 
         self.scrollvoti = QScrollArea()
         self.scrollvoti.setWidgetResizable(True)
@@ -129,12 +130,15 @@ class MainWindow(QMainWindow):
             return
         if not voti:
             QMessageBox.information(self, "Info", "Nessun voto trovato nel registro.")
-            return
+           # return
         self.voti_registro = []
         for voto in voti:
             voto["materia"] = sist_stringa(voto["materia"][0].upper() + voto["materia"][1:].lower())
             voto = [float(voto["voto"]), voto["materia"], int(voto["peso"]), voto["data"], voto["tipo"]]
             self.voti_registro.append([voto[0], voto[1], voto[2], voto[3], voto[4]])
+        self.voti_registro.append([10.0, "Matematica", 100, "05/09/2026", "Scritto"])
+        self.voti_registro.append([10.0, "Storia", 100, "05/09/2026", "Scritto"])
+        self.voti_registro.append([10.0, "Matematica", 100, "05/09/2026", "Scritto"])
         self.aggiorna()
     
     def on_cancella_voto(self):
@@ -157,23 +161,23 @@ class MainWindow(QMainWindow):
         self.make_label_media_materie()
         self.make_medie()
         self.make_grafico()
+        self.make_menu()
 
     def make_list_voti(self):
-        if self.periodo == 0:
-           self.list_voti = self.voti_registro.copy()
-           for voto in self.list_voti:
-            voto[0] = float(voto[0])
-            voto[2] = int(voto[2])
-        elif self.periodo == 1:
-            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo]
-            for voto in self.list_voti:
-                voto[0] = float(voto[0])
-                voto[2] = int(voto[2])
+        if self.materia == "Tutte le materie":
+            if self.periodo == 0:
+                self.list_voti = [voto for voto in self.voti_registro]
+            elif self.periodo == 1:
+              self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo]
+            else:
+                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo]
         else:
-            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo]
-            for voto in self.list_voti:
-                voto[0] = float(voto[0])
-                voto[2] = int(voto[2])
+            if self.periodo == 0:
+              self.list_voti = [voto for voto in self.voti_registro if voto[1] == self.materia]
+            elif self.periodo == 1:
+                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo and voto[1] == self.materia]
+            else:
+                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo and voto[1] == self.materia]
         self.list_voti.extend(self.pers_voti)
 
     def make_medie(self):
@@ -258,7 +262,25 @@ class MainWindow(QMainWindow):
         else:
             text = self.default_media_materie
         self.label_media_materie.setText(text)
+        
+    def make_menu(self):
+        self.menu_materie.blockSignals(True)
+        self.menu_materie.clear()
+        self.menu_materie.addItem("Tutte le materie")
+        materie_uniche = []
+        for voto in self.voti_registro + self.pers_voti:
+            if voto[1] not in materie_uniche:
+                materie_uniche.append(voto[1])
+        for materia in materie_uniche:
+            self.menu_materie.addItem(materia)
+        idx = self.menu_materie.findText(self.materia)
+        self.menu_materie.setCurrentIndex(idx if idx >= 0 else 0)
+        self.menu_materie.blockSignals(False)
 
+    def single_materia(self):
+        self.materia = self.menu_materie.currentText()
+        self.aggiorna()
+                
 class DialogLogin(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
