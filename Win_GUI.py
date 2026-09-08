@@ -136,9 +136,6 @@ class MainWindow(QMainWindow):
             voto["materia"] = sist_stringa(voto["materia"][0].upper() + voto["materia"][1:].lower())
             voto = [float(voto["voto"]), voto["materia"], int(voto["peso"]), voto["data"], voto["tipo"]]
             self.voti_registro.append([voto[0], voto[1], voto[2], voto[3], voto[4]])
-        self.voti_registro.append([10.0, "Matematica", 100, "05/09/2026", "Scritto"])
-        self.voti_registro.append([10.0, "Storia", 100, "05/09/2026", "Scritto"])
-        self.voti_registro.append([10.0, "Matematica", 100, "05/09/2026", "Scritto"])
         self.aggiorna()
     
     def on_cancella_voto(self):
@@ -164,21 +161,15 @@ class MainWindow(QMainWindow):
         self.make_menu()
 
     def make_list_voti(self):
-        if self.materia == "Tutte le materie":
-            if self.periodo == 0:
-                self.list_voti = [voto for voto in self.voti_registro]
-            elif self.periodo == 1:
-              self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo]
-            else:
-                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo]
+        if self.periodo == 0:
+            self.list_voti = list(self.voti_registro)
+        elif self.periodo == 1:
+            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo]
         else:
-            if self.periodo == 0:
-              self.list_voti = [voto for voto in self.voti_registro if voto[1] == self.materia]
-            elif self.periodo == 1:
-                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") <= self.cambio_periodo and voto[1] == self.materia]
-            else:
-                self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo and voto[1] == self.materia]
+            self.list_voti = [voto for voto in self.voti_registro if datetime.strptime(voto[3], "%d/%m/%Y") > self.cambio_periodo]
         self.list_voti.extend(self.pers_voti)
+        if self.materia != "Tutte le materie":
+            self.list_voti = [voto for voto in self.list_voti if voto[1] == self.materia]
 
     def make_medie(self):
         self.medie = []
